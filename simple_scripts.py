@@ -242,8 +242,8 @@ class Project:
         """
 
         # If the catalog contains velocities, get the velocity frame.
-        if (re.match(myproject.catalog_info['type'], 'LatLongVel') || 
-            re.match(myproject.catalog_info['type'], 'LatLongVelInt') ||
+        if (re.match(myproject.catalog_info['type'], 'LatLongVel') or
+            re.match(myproject.catalog_info['type'], 'LatLongVelInt') or
             re.match(myproject.catalog_info['type'], 'LatLongVelMap')):
 
             while True:
@@ -348,7 +348,7 @@ class Project:
             try:
                 catalog_data = np.genfromtxt(self.project_info['catalog_location'],
                                              dtype='S25,S25,S25,f',
-                                             names='srcname','lat','long','int')
+                                             names=['srcname','lat','long','int'])
             except:
                 print "catalog not in right format"
                 
@@ -361,7 +361,7 @@ class Project:
             try:
                 catalog_data = np.genfromtxt(self.project_info['catalog_location'],
                                              dtype='S25,S25,S25,f,f',
-                                             names='srcname','lat','long','vel','int')
+                                             names=['srcname','lat','long','vel','int'])
             except:
                 print "catalog not in right format"
                 
@@ -375,7 +375,7 @@ class Project:
             try:
                 catalog_data = np.genfromtxt(self.project_info['catalog_location'],
                                              dtype='S25,S25,S25,f,f',
-                                             names='srcname','lat','long','lat_size','long_size')
+                                             names=['srcname','lat','long','lat_size','long_size'])
             except:
                 print "catalog not in right format"
 
@@ -390,7 +390,7 @@ class Project:
             try:
                 catalog_data = np.genfromtxt(self.project_info['catalog_location'],
                                              dtype='S25,S25,S25,f,f,f',
-                                             names='srcname','lat','long','vel','lat_size','long_size')
+                                             names=['srcname','lat','long','vel','lat_size','long_size'])
             except:
                 print "catalog not in right format"
                 
@@ -406,7 +406,39 @@ class Project:
             print "not a valid catalog type"
 
 
-    def get_backend_defaults(backend_config):
+  
+
+    def get_backend_preset(self):
+
+        """
+        Purpose: have the user select which backend present they want to use
+
+        Output: backend structure with appropriate values for preset
+
+        Date        Programmer      Description of Changes
+        ----------------------------------------------------------------------
+        9/25/2013   A.A. Kepley     Original Code
+        """
+
+    
+        while True:
+
+            prompt = """
+                Select the desired backend configuration
+                1.) Extragalactic neutral hydrogen (HI)
+                """
+
+            backend_preset = int(raw_input(prompt))
+
+            if backend_preset == 1:
+                self.project_info['backend_preset'] = 'ExGalHI'
+                break
+            else:
+                print "Not a valid selection"
+
+
+                
+    def set_up_backend(self):
 
         """
         Purpose: set defaults for backend configuration. 
@@ -418,31 +450,26 @@ class Project:
         9/25/2013   A.A. Kepley     Original Code
             """
 
-    def get_backend_preset(backend_config):
+        if self.project_info['backend_preset'] == 'ExGalHI':
 
-        """
-        Purpose: have the user select which backend present they want to use
+            self.project_info['observing_method'] = 'psw' # position switching
 
-        Output: backend structure with appropriate values for preset
+            self.backend_info['receiver'] = 'Rcvr1_2'
+            self.backend_info['backend'] = 'Spectrometer'
+            self.backend_info['restfreq'] =  1420.405752 # Double-check this number
+            self.backend_info['bandwidth'] = 12.5 # MHz
+            self.backend_info['swmode'] = 'tp'
+            self.backend_info['swper'] = 1.0 # s
+            self.backend_info['tint'] = 4.0 # s
+            self.backend_info['nwin'] = 1
+            self.backend_info['nchan'] = 'high'
+            self.backend_info['spect.levels'] = 9
 
-        Date        Programmer      Description of Changes
-        ----------------------------------------------------------------------
-        9/25/2013   A.A. Kepley     Original Code
-            """
+        else:
+            print "not a valid backend preset"
+  
 
-    def get_manual_backend_config(backend_config):
-
-        """
-        Purpose: set up a single, user-specified spectral window
-
-        Output: backend structure with appropriate values
-
-        Date        Programmer      Description of Changes
-        ----------------------------------------------------------------------
-        9/25/2013   A.A. Kepley     Original Code
-            """
-
-    def set_up_map():
+    def set_up_map(self):
 
         """
         Purpose: set up a single map with the given parameters
@@ -452,15 +479,50 @@ class Project:
         Date        Programmer      Description of Changes
         ----------------------------------------------------------------------
         9/25/2013   A.A. Kepley     Original Code
-            """
+        """
 
+        pass
 
-    def print_catalog():
+    def print_catalog(self):
 
         """
         Purpose: print out catalog
 
-            """
+        Date            Programmer      Description of Change
+        ----------------------------------------------------------------------
+        10/4/2013       A.A. Kepley     Original Code
+
+        """
+
+        filename = self.project_info['project_id'] + '.cat'
+
+        try:
+            f = open(filename, 'w')
+        except:
+            print "Could not open filename"
+
+
+        f.write("format=spherical\n")
+        f.write("coordmode="+self.catalog_info['epoch'] + "\n")
+        f.write("veldef=" +
+                self.catalog_info['velocity_convention'] + '-' +
+                self.catalog_info['velocity_definition'] + "\n")
+
+        if self.catalog_info['type'] == 'LatLongVel':
+            f.write("HEAD = " +
+                    "NAME" + "    " +
+                    self.catalog_info['longitude_coordinate'] + "    " +
+                    self.catalog_info['latitude_coordinate'] + "    " +
+                    "VEL" + "\n")
+            # write out values from catalogx
+            for i in range(len(self.catalog_info['catalog']['lat'])):
+                f.write(self.catalog_info['catalog']['srcname'][i] + "    " +
+                        self.catalog_info['catalog']['lat'][i] + "    " +
+                        self.catalog_info['catalog']['long'][i] + "     " +
+                        str(self.catalog_info['catalog']['vel'][i]) + "\n")
+
+        f.close()
+
             
     def print_backend_config():
 
@@ -471,8 +533,9 @@ class Project:
         ----------------------------------------------------------------------
         9/25/2013   A.A. Kepley     Original Code
 
-            """
+        """
 
+        pass
 
     def print_observing_script():
 
@@ -483,10 +546,10 @@ class Project:
         Date        Programmer      Description of Changes
         ----------------------------------------------------------------------
         9/25/2013   A.A. Kepley     Original Code
+        
+        """
 
-            """
-
-
+        pass
     
 def get_user_parameters():
 
@@ -500,7 +563,6 @@ def get_user_parameters():
     ----------------------------------------------------------------------
     9/25/2013   A.A. Kepley     Original Code
     """
-
 
     # Create a new project
     myproject = Project()
@@ -517,20 +579,18 @@ def get_user_parameters():
     # get velocity definitions
     myproject.get_user_catalog_velocity_definitions()
 
-    # Read the catalog
+    # read the catalog
     myproject.read_catalog() 
 
     # set up the backend
-    #    myproject.set_backend_defaults(backend_info) # do I want this?
     myproject.get_backend_preset()
 
-    ## Do I want to do this here with series of elif statements or do I want to do this in a function?
-    if myproject.project_info['backend_present'] == 'other':
-        myproject.get_manual_backend_config(backend_info)
-    else:
-        pass
+    myproject.set_up_backend()
 
     # set up map if doing map
 
+
+    # print catalog
+    myproject.print_catalog()
 
     # output scripts (give option to either print to screen or output to file).
