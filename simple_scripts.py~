@@ -55,7 +55,7 @@ class Project:
                              'spect.levels': ''} # 3 or 9. for 200 and 800 MHz only have 3 level sampling
     
 
-    def display_welcome_message(self):
+    def display_welcome_message():
 
         """
         Purpose: display a welcome message
@@ -69,15 +69,15 @@ class Project:
 
         Welcome to the automatic GBT script generator!
 
-        To use this program, you will need to have
-                1.) your project ID code, which can be found on the cover-sheet of your proposal, 
-                2.) a text file with your catalog, and
-                3.) what observing mode you would like to use.
+        To use this program, you will need to have your project ID
+        code, which can be found on the cover-sheet of your proposal,
+        a text file with your catalog, and what observing mode you
+        would like to use.
 
-        Only the most common simple GBT observing modes are available
-        in this tool. If you want to use a more complex observing
-        mode, you could use this tool to create scripts and then
-        modify the scripts to suit your purposes.
+        Only the simplest and most common GBT observing modes are
+        available in this tool. If you want to use a more complex
+        observing mode, you could use this tool to create scripts and
+        then modify the scripts to suit your purposes.
 
         """
     
@@ -458,10 +458,10 @@ class Project:
 
             int_time = raw_input(prompt)
 
-            if float(int_time):
+            if int_time.isdigit():
             
-                int_array = np.empty(len(self.catalog_info['catalog']['srcname']))
-                int_array.fill(float(int_time))
+                int_array = np.empty(len(self.catalog_info['catalog']['int']))
+                int_array.fill(int_time)
                 self.catalog_info['catalog']['int'] = int_array.copy()
                 break
 
@@ -612,13 +612,13 @@ class Project:
         except:
             print "Could not open filename"
 
-        f.write('myconfig="""\n')
+        f.write('myconfig=""""\n')
 
         # how do i want to deal with switching frequencies here?
         for key in self.backend_info.keys():
             if self.backend_info[key]:
                 if type(self.backend_info[key]) is str:
-                    f.write(key+'="'+str(self.backend_info[key])+'"\n')
+                    f.write(key+"='"+str(self.backend_info[key])+"'\n")
                 elif type(self.backend_info[key]) is tuple:
                     param_string = ""
                     for i in self.backend_info[key]:
@@ -654,16 +654,16 @@ class Project:
             print "Could not open filename"
 
         f.write("#Configuration file\n")
-        f.write("execfile('"+mypath+"/"+configfile+"')\n")
+        f.write("execfile('"+mypath+configfile+"')\n")
         f.write("\n")
 
         f.write("# Catalog files including official flux calibrators and pointing calibrators for the GBT\n")
-        f.write("Catalog('"+mypath+"/"+catfile+"')\n")
+        f.write("Catalog('"+mypath+catfile+"')\n")
         f.write("Catalog(fluxcal)\n")
         f.write("Catalog(pointing)\n")
         f.write("\n")
 
-        f.write("# Slewing to source. Change src variable to point and focus near another source \n")
+        f.write("# Slewing to source. Change src= variable to point and focus near another source \n")
         f.write("src = '" + self.catalog_info['catalog']['srcname'][0] + "'\n")
         f.write("Slew(src)\n")
         f.write("\n")
@@ -731,9 +731,9 @@ class Project:
         # for each source in catalog create observing script need to
         # ask for the integration time if you don't already have
         # it. probably write an extra function to do this.
-        for i in range(len(self.catalog_info['catalog']['srcname'])):
+        for src in self.catalog_info['catalog']['srcname']:
 
-            filename = self.project_info['project_id'] + '_' + self.catalog_info['catalog']['srcname'][i] + '.obs'
+            filename = self.project_info['project_id'] + '_' + src + '.obs'
             try:
                 f = open(filename, 'w')
             except:
@@ -741,17 +741,17 @@ class Project:
 
             
             f.write("#Configuration file\n")
-            f.write("execfile('"+mypath+"/"+configfile+"')\n")
+            f.write("execfile('"+mypath+configfile+"')\n")
             f.write("\n")
             
             f.write("# Catalog files including official flux calibrators and pointing calibrators for the GBT\n")
-            f.write("Catalog('"+mypath+"/"+catfile+"')\n")
+            f.write("Catalog('"+mypath+catfile+"')\n")
             f.write("Catalog(fluxcal)\n")
             f.write("Catalog(pointing)\n")
             f.write("\n")
 
-            f.write("# Slewing to source.  \n")
-            f.write("src = '" + self.catalog_info['catalog']['srcname'][i] + "'\n")
+            f.write("# Slewing to source. Change src variable to point and focus near another source \n")
+            f.write("src = '" + src + "'\n")
             f.write("Slew(src)\n")
             f.write("\n")
 
@@ -759,12 +759,12 @@ class Project:
             
             # select the observing command based on the observing mode.
             if self.project_info['observing_method'] == 'psw':
-                obs_command = 'OnOff(src,Offset("J2000","00:15:00","00:33:00"),'+str(self.catalog_info['catalog']['int'][i]) + ')\n'
+                obs_command = 'OnOff(src,Offset(J2000,"00:15:00","00:33:00"),'+str(self.catalog_info['catalog']['int']) + ')\n'
             elif self.project_info['observing_method'] == 'fsw':
-                obs_command = 'Track(src,None,'+ str(self.catalog_info['catalog']['int'][i]) + ')\n'
+                obs_command = 'Track(src,None,'+ str(self.catalog_info['catalog']['int']) + ')\n'
             elif self.project_info['observing_method'] == 'nod':
                 obs_command = 'Nod'
-                obs_command = 'Nod(src,1,2,'+ str(self.catalog_info['catalog']['int'][i]) + ')\n'
+                obs_command = 'Nod(src,1,2,'+ str(self.catalog_info['catalog']['int']) + ')\n'
             else:
                 print "Observing mode not recognized"
 
@@ -775,7 +775,7 @@ class Project:
             f.close()
                     
 
-    def  display_goodbye_message(self):
+    def  display_goodbye_message():
     
         """
         Purpose: display a welcome message
