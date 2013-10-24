@@ -28,6 +28,7 @@ class Project:
                                          'long': np.array([]),
                                          'vel':np.array([]),
                                          'int':np.array([]),
+                                         'offset':np.array([]),
                                          'long_size': np.array([]),
                                          'lat_size': np.array([])}} 
 
@@ -41,10 +42,10 @@ class Project:
                              'swmode': '', # tp, tp_nocal, sp, sp_nocal (either want tp or sp)
                              'swtype': '', # only used when sp. none, fsw, bsw, psw
                              'swper': 0.0, # switching cycle in seconds 
-                             'swfreq':(0.0,0.0), # switching frequency
+                             'swfreq':(), # switching frequency
                              'tint': 0.0, # integration time in seconds
                              'beam': '', # B1, B2, B3, B4, B12, etc. # Can probably set based on the receiver and the mapping.
-                            'nwin': 0, #1,2,3 
+                             'nwin': 0, #1,2,3 
                              # 'deltafreq': '', probably don't need this
                              # 'vlow': '', # Can figure out from catalog or set to zero. Which is safer?
                              # 'vhigh':'', # Can figure out from catalog or set to zero. Which is safer?
@@ -52,6 +53,33 @@ class Project:
                              # 'vdef': '', # Can figure out from catalog. don't set here?
                              'nchan': '', # low, medium, high. Can I always just set this to high?
                              'spect.levels': ''} # 3 or 9. for 200 and 800 MHz only have 3 level sampling
+    
+
+    def display_welcome_message():
+
+        """
+        Purpose: display a welcome message
+
+        Date            Programmer      Description of Changes
+        ----------------------------------------------------------------------
+        10/24/2013      A.A. Kepley     Original Code
+        """
+
+        print """
+
+        Welcome to the automatic GBT script generator!
+
+        To use this program, you will need to have your project ID
+        code, which can be found on the cover-sheet of your proposal,
+        a text file with your catalog, and what observing mode you
+        would like to use.
+
+        Only the simplest and most common GBT observing modes are
+        available in this tool. If you want to use a more complex
+        observing mode, you could use this tool to create scripts and
+        then modify the scripts to suit your purposes.
+
+        """
     
 
     def get_project_id(self):
@@ -89,6 +117,8 @@ class Project:
 
         Input: user inputs script name
         Output: set script name 
+
+        Note (10/24/2013): This function may not be necessary. Delete?
 
         Date        Programmer      Description of Changes
         ----------------------------------------------------------------------
@@ -151,6 +181,9 @@ class Project:
         Input: catalog type
 
         Output: set catalog type in catalog_info
+
+        Note (10/24/2013): Refactor how I do this to more easily
+        include variable offsets for each source?
 
         Date            Programmer      Description of Changes
         ----------------------------------------------------------------------
@@ -242,9 +275,9 @@ class Project:
         """
 
         # If the catalog contains velocities, get the velocity frame.
-        if (re.match(myproject.catalog_info['type'], 'LatLongVel') or
-            re.match(myproject.catalog_info['type'], 'LatLongVelInt') or
-            re.match(myproject.catalog_info['type'], 'LatLongVelMap')):
+        if (re.match(self.catalog_info['type'], 'LatLongVel') or
+            re.match(self.catalog_info['type'], 'LatLongVelInt') or
+            re.match(self.catalog_info['type'], 'LatLongVelMap')):
 
             while True:
                 prompt = """
@@ -330,6 +363,7 @@ class Project:
             self.catalog_info['catalog']['srcname'] = catalog_data['srcname']
             self.catalog_info['catalog']['lat'] = catalog_data['lat']
             self.catalog_info['catalog']['long'] = catalog_data['long']
+            self.get_integration_time()
 
         elif self.catalog_info['type'] == 'LatLongVel':
             try:
@@ -343,6 +377,7 @@ class Project:
             self.catalog_info['catalog']['lat'] = catalog_data['lat']
             self.catalog_info['catalog']['long'] = catalog_data['long']
             self.catalog_info['catalog']['vel'] = catalog_data['vel']
+            self.get_integration_time()
             
         elif self.catalog_info['type'] == 'LatLongInt':
             try:
@@ -406,7 +441,41 @@ class Project:
             print "not a valid catalog type"
 
 
-  
+    def get_integration_time(self):
+
+        """
+        Purpose: have user set integration time that they want to use
+
+        Date            Programmer              Description of Changes
+        ----------------------------------------------------------------------
+        10/24/2013      A.A. Kepley             Original Code
+        """
+
+        while True:
+            prompt = """
+            Enter the integration time per source in seconds:
+            """
+
+            int_time = raw_input(prompt)
+
+            if int_time.isdigit():
+            
+                int_array = np.empty(len(self.catalog_info['catalog']['int']))
+                int_array.fill(int_time)
+                self.catalog_info['catalog']['int'] = int_array.copy()
+                break
+
+    def get_psw_offset(self):
+
+        """
+        Purpose: have user set the offset that they want to use for position switching
+
+        Date            Programmer              Description of Changes
+        ----------------------------------------------------------------------
+        10/24/2013      A.A. Kepley             Original Code
+        """
+
+        pass
 
     def get_backend_preset(self):
 
@@ -455,6 +524,7 @@ class Project:
             self.project_info['observing_method'] = 'psw' # position switching
 
             self.backend_info['receiver'] = 'Rcvr1_2'
+            self.backend_info['obstype'] = 'Spectroscopy'
             self.backend_info['backend'] = 'Spectrometer'
             self.backend_info['restfreq'] =  1420.405752 # Double-check this number
             self.backend_info['bandwidth'] = 12.5 # MHz
@@ -524,7 +594,7 @@ class Project:
         f.close()
 
             
-    def print_backend_config():
+    def print_backend_config(self):
 
         """
         Purpose: print out backend configuration for observing
@@ -535,9 +605,86 @@ class Project:
 
         """
 
-        pass
+        filename = self.project_info['project_id'] + '.config'
 
-    def print_observing_script():
+        try:
+            f = open(filename, 'w')
+        except:
+            print "Could not open filename"
+
+        f.write('myconfig=""""\n')
+
+        # how do i want to deal with switching frequencies here?
+        for key in self.backend_info.keys():
+            if self.backend_info[key]:
+                if type(self.backend_info[key]) is str:
+                    f.write(key+"='"+str(self.backend_info[key])+"'\n")
+                elif type(self.backend_info[key]) is tuple:
+                    param_string = ""
+                    for i in self.backend_info[key]:
+                        param_string = param_string + str(self.backend_info[key][i]) + ','
+                        f.write(key+"="+param_string+"\n")
+                else:
+                    f.write(key+"="+str(self.backend_info[key])+"\n")
+                
+        f.write('"""\n')
+
+        f.close()
+
+    def print_focus_script(self):
+
+        """
+        Purpose: print out focus script
+
+        Date            Programmer      Description of Changes
+        ----------------------------------------------------------------------
+        10/24/2013      A.A. Kepley     Original Code
+
+        """
+
+        configfile = self.project_info['project_id'] + '.config'
+        catfile = self.project_info['project_id'] + '.cat'
+        mypath = os.getcwd() # assumes I'm running on the GBT systems.
+
+        filename = self.project_info['project_id'] + '_focus.obs'
+
+        try:
+            f = open(filename, 'w')
+        except:
+            print "Could not open filename"
+
+        f.write("#Configuration file\n")
+        f.write("execfile('"+mypath+configfile+"')\n")
+        f.write("\n")
+
+        f.write("# Catalog files including official flux calibrators and pointing calibrators for the GBT\n")
+        f.write("Catalog('"+mypath+catfile+"')\n")
+        f.write("Catalog(fluxcal)\n")
+        f.write("Catalog(pointing)\n")
+        f.write("\n")
+
+        f.write("# Slewing to source. Change src= variable to point and focus near another source \n")
+        f.write("src = '" + self.catalog_info['catalog']['srcname'][0] + "'\n")
+        f.write("Slew(src)\n")
+        f.write("\n")
+        
+        f.write("# Automatically use a pointing and focus calibrator near the desired source\n")
+        f.write("Configure(myconfig)\n")
+        f.write("AutoPeakFocus(src)\n")
+        f.write('Break("Check pointing and focus")\n')
+        f.write("\n")
+
+        f.write("# Go back to source, configure, and balance \n")
+        f.write("Slew(src)\n")
+        f.write("Configure(myconfig) # need to do because AutoPeakFocus changes the backend configuration\n")
+        f.write("Balance()\n")
+        f.write('Break("Check balance")\n')
+        f.write("\n")
+        
+        f.close()
+
+
+    def print_observing_script(self):
 
         """
         Purpose: print out observing script
@@ -546,11 +693,107 @@ class Project:
         Date        Programmer      Description of Changes
         ----------------------------------------------------------------------
         9/25/2013   A.A. Kepley     Original Code
-        
         """
 
+        if self.project_info['map'] == True:
+            self.print_mapping_script()
+        else:
+            self.print_single_pointing_script()
+
+    def print_mapping_script(self):
+
+        """
+        Purpose: print out mapping observing script
+
+        Date            Programmer      Description of Changes
+        ----------------------------------------------------------------------
+        10/24/2013      A.A. Kepley     Original Code
+        """
+        
         pass
+
+    def print_single_pointing_script(self):
+        
+        """
+        Purpose: print out single-pointing observing script
+
+        Date            Programmer         Description of Changes
+        ----------------------------------------------------------------------
+        10/24/2013      A.A. Kepley        Original Code
+
+        """
+
+        # get info on configuration and catalog
+        configfile = self.project_info['project_id'] + '.config'
+        catfile = self.project_info['project_id'] + '.cat'
+        mypath = os.getcwd() # assumes I'm running on the GBT systems.
+
+        # for each source in catalog create observing script need to
+        # ask for the integration time if you don't already have
+        # it. probably write an extra function to do this.
+        for src in self.catalog_info['catalog']['srcname']:
+
+            filename = self.project_info['project_id'] + '_' + src + '.obs'
+            try:
+                f = open(filename, 'w')
+            except:
+                print "Could not open filename"
+
+            
+            f.write("#Configuration file\n")
+            f.write("execfile('"+mypath+configfile+"')\n")
+            f.write("\n")
+            
+            f.write("# Catalog files including official flux calibrators and pointing calibrators for the GBT\n")
+            f.write("Catalog('"+mypath+catfile+"')\n")
+            f.write("Catalog(fluxcal)\n")
+            f.write("Catalog(pointing)\n")
+            f.write("\n")
+
+            f.write("# Slewing to source. Change src variable to point and focus near another source \n")
+            f.write("src = '" + src + "'\n")
+            f.write("Slew(src)\n")
+            f.write("\n")
+
+            ## ADD CONFIG AND BALANCE STATEMENT HERE???
+            
+            # select the observing command based on the observing mode.
+            if self.project_info['observing_method'] == 'psw':
+                obs_command = 'OnOff(src,Offset(J2000,"00:15:00","00:33:00"),'+str(self.catalog_info['catalog']['int']) + ')\n'
+            elif self.project_info['observing_method'] == 'fsw':
+                obs_command = 'Track(src,None,'+ str(self.catalog_info['catalog']['int']) + ')\n'
+            elif self.project_info['observing_method'] == 'nod':
+                obs_command = 'Nod'
+                obs_command = 'Nod(src,1,2,'+ str(self.catalog_info['catalog']['int']) + ')\n'
+            else:
+                print "Observing mode not recognized"
+
+            if obs_command:
+                f.write(obs_command)
+            
+
+            f.close()
+                    
+
+    def  display_goodbye_message():
     
+        """
+        Purpose: display a welcome message
+
+        Date            Programmer      Description of Changes
+        ----------------------------------------------------------------------
+        10/24/2013      A.A. Kepley     Original Code
+        """
+
+        print """
+
+        Thank you for using the automatic GBT script generator. Your
+        scripts will be found in the directory you started the program
+        from. To observe, please inspect the scripts and then load
+        them into Astrid.
+
+        """
+
 def get_user_parameters():
 
     """
@@ -567,9 +810,10 @@ def get_user_parameters():
     # Create a new project
     myproject = Project()
 
+    myproject.display_welcome_message()
     # set up the project meta-data
     myproject.get_project_id()    
-    myproject.get_script_name()
+    #    myproject.get_script_name()
 
     # get the catalog
     myproject.get_user_catalog()
@@ -584,13 +828,20 @@ def get_user_parameters():
 
     # set up the backend
     myproject.get_backend_preset()
-
     myproject.set_up_backend()
 
     # set up map if doing map
 
-
     # print catalog
     myproject.print_catalog()
 
-    # output scripts (give option to either print to screen or output to file).
+    # print backend config
+    myproject.print_backend_config()
+
+    # print focus script
+    myproject.print_focus_script()
+
+    # print observing scripts
+    myproject.print_observing_script()
+
+    myproject.display_goodbye_message()
