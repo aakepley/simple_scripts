@@ -1,0 +1,65 @@
+# This is a template catalog for GBT observing scripts generated using
+# the simple scripting program. Modify as needed for your source list.
+
+#----------------------------------------------------------------------				
+#			Coordinate system
+#----------------------------------------------------------------------
+
+coordmode=J2000 # other choices include B1950, GALACTIC
+
+#----------------------------------------------------------------------
+#			Velocity definition
+#----------------------------------------------------------------------
+
+veldef=VOPT-BAR # other choices include VRAD-BAR, VOPT-LSR, VRAD-LSR, ZOPT-BAR,  VOPT-TOP, VRAD-TOP.
+
+# See https://safe.nrao.edu/wiki/bin/view/GB/Data/VelDefFits for
+# definitions and more possible values. Note that the heliocentric (HEL) and
+# barycentric (BAR) coordinate frames are essentially identical.
+
+#----------------------------------------------------------------------
+#			Catalog Header
+#----------------------------------------------------------------------
+
+HEAD = NAME RA DEC VELOCITY # example
+
+# The catalog must include at least a source name (NAME) and a
+# position. The source name can be any script up to 32 characters. If
+# the source name contains embedded blanks or hashes (#), surround it
+# with quotes (e.g., "Sgr A"). The positions can either be right
+# ascension and declination (indicated using RA and DEC) or or
+# galactic longitude and latitude (indicated using GLONG and GLAT).
+
+# The VELOCITY is the velocity in km/s for the source using the velocity
+# definition specified above.
+
+# Optional non-standard header keywords used by the simple scripting
+# application include:
+#
+#	-- INT -- total integration time per source in minutes. Use to
+#		specify a different integration time for each source. If not specified, 
+#		the simple scripting program will use the same integration time for 
+#		all your sources.
+#
+# 	-- LONG_OFFSET -- offset in arcmin in longitude-like coordinate. Use to
+#		specify a different longitude offset for each source. If not specified, the simple
+#		scripting program will use the same longitude offset for all your
+#		sources.
+#
+#	-- LAT_OFFSET -- offset in arcmin in latitude-like coordinate. Use to
+#		specify a different latitude offset for each source. If not specified, the simple
+#		scripting program will use the same latitude offset for all your
+#		sources.
+#
+#	-- LONG_SIZE -- map size in arcmin in longitude-like coordinate -- Use to
+#		specify a different longitude map size  for each source. If not specified, the simple
+#		scripting program will use the same longitude map size for all your sources.
+
+#	-- LAT_SIZE -- map size in arcmin in latitude-like coordinate -- Use to
+#		specify a different latitude map size for each source. If not specified, the simple
+#		scripting program will use the same latitude map size for all your sources.
+
+#----------------------------------------------------------------------
+#			Catalog Entries
+#----------------------------------------------------------------------
+M82	09:55:52.7	69:40:46	203   # example catalog entry. replace with your catalog.
