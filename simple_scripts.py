@@ -1,6 +1,7 @@
 import numpy as np
 import re
 import os
+from gbt.turtle.user import Catalog
 
 class Project:
 
@@ -10,27 +11,13 @@ class Project:
 
         # general project info
         self.project_info = {'project_id': "",        # AGBT13B_306            
-                             'script_name': "",       # test1
                              'catalog_location': "",  # /path/to/filename
                              'backend_preset': "",    # short name for preset or other if not using a preset
                              'observing_method': "",  # nod (nodding), psw (position switching), fsw (frequency switching).
-                             'map': False}            # True if map, False otherwise. Can't have map=True and observing_method='nod'.
+                             'map': False}            # True if map, False otherwise. Can't have map=True and observing_method='nod
         
-        # Catalog info
-        self.catalog_info = {'type': "",                 # LatLong, LatLongVel, LatLongInt, LatLongVelInt, LatLongMap, LatLongVelMap
-                             'longitude_coordinate': "", # RA, GLong
-                             'latitude_coordinate': "",  # Dec, GLat
-                             'epoch': "",                # J2000, B1950, Galactic
-                             'velocity_definition': "",  # Bary, topo, lsr
-                             'velocity_convention': "",  # optical, radio
-                             'catalog': {'srcname': np.array([]),
-                                         'lat': np.array([]),
-                                         'long': np.array([]),
-                                         'vel':np.array([]),
-                                         'int':np.array([]),
-                                         'offset':np.array([]),
-                                         'long_size': np.array([]),
-                                         'lat_size': np.array([])}} 
+        self.catalog_info = Catalog()
+        
 
         # Backend info
         # These are taken from the configuration keywords for astrid. I probably don't need them all.
@@ -64,6 +51,8 @@ class Project:
         ----------------------------------------------------------------------
         10/24/2013      A.A. Kepley     Original Code
         """
+
+        ## will want to update this for new way I'm doing the script.
 
         print """
 
@@ -109,44 +98,7 @@ class Project:
         # set the name of the script in the project_info structure
         self.project_info['project_id'] = project_id
         
-    def get_script_name(self):
-
-        """
-        Purpose: get name for scripts. Final scripts are put in a
-        directory with this name. 
-
-        Input: user inputs script name
-        Output: set script name 
-
-        Note (10/24/2013): This function may not be necessary. Delete?
-
-        Date        Programmer      Description of Changes
-        ----------------------------------------------------------------------
-        9/25/2013   A.A. Kepley     Original Code
-        """
-
-        # get the name and location for the script directory
-        while True:
-
-            script_name = raw_input("Enter a name for your scripts: ")
-
-            if re.match(r"[^\w+]",script_name,):
-                print "Script name must only contain alphanumeric characters."
-            # check to make sure that the directory doesn't already exist.
-            elif os.path.isdir(script_name):                    
-                print "Directory already exists."
-            else:
-                break
-
-        # create the directory
-        try:
-            os.mkdir(script_name)
-        except:
-            print "Could not create directory."
-
-        # set the name of the script in the project_info structure
-        self.project_info['script_name'] = script_name
-
+   
     def get_user_catalog(self):
 
         """
@@ -161,8 +113,6 @@ class Project:
         9/25/2013   A.A. Kepley     Original Code
         """
 
-        import os
-
         while True:
             catalog_location = raw_input("Enter the location of your catalog: ")
 
@@ -172,298 +122,131 @@ class Project:
                 print "Could not open catalog"                
 
         self.project_info['catalog_location'] = catalog_location
-
-    def get_user_catalog_type(self):
-
-        """
-        Purpose: Get the type of catalog from the user
-
-        Input: catalog type
-
-        Output: set catalog type in catalog_info
-
-        Note (10/24/2013): Refactor how I do this to more easily
-        include variable offsets for each source?
-
-        Date            Programmer      Description of Changes
-        ----------------------------------------------------------------------
-        10/2/2013       A.A. Kepley     Original Code
-        """
-        while True:
-            prompt = """
-            What are the columns in your catalog?
-            1.) Name (col. 1), position (col. 2 & 3)
-            2.) Name (col. 1), position (col. 2 & 3), velocity (col. 4)
-            3.) Name (col. 1), position (col. 2 & 3), integration time (col. 4)
-            4.) Name (col. 1), position (col. 2 & 3), velocity (col. 4), integration time (col. 5)
-            5.) Name (col. 1), position (col. 2 & 3), map size (col. 4 & 5)
-            6.) Name (col. 1), position (col. 2 & 3), velocity (col. 4), map size (col. 5 & 6)
-            """
-
-            catalog_type = int(raw_input(prompt))
-
-            if catalog_type == 1:
-                self.catalog_info['type'] = 'LatLong'
-                break
-            elif catalog_type == 2:
-                self.catalog_info['type'] = 'LatLongVel'
-                break
-            elif catalog_type == 3:
-                self.catalog_info['type'] = 'LatLongInt'
-                break
-            elif catalog_type == 4:
-                self.catalog_info['type'] = 'LatLongVelInt'
-                break
-            elif catalog_type == 5:
-                self.catalog_info['type'] = 'LatLongMap'
-                break
-            elif catalog_type == 6:
-                self.catalog_info['type'] = 'LatLongVelMap'
-                break
-            else:
-                print "You did not select a valid option."
-
-    def get_user_catalog_position_definitions(self):
-
-        """
-        Purpose: ask user for definitions for long-lat coordinates
-
-        Output: values for definitions of long-lat coordinates
-
-        Date        Programmer      Description of Changes
-        ----------------------------------------------------------------------
-        9/25/2013   A.A. Kepley     Original Code
-        """
-
-        while True:
-            prompt = """
-            Select the coordinate frame definition for your catalog:
-            1.) RA/Dec (J2000)
-            2.) Ra/Dec (B1950)
-            3.) Galactic Latitude and Longitude (GLAT/GLONG)
-            """
-
-            catalog_definition = int(raw_input(prompt))
-
-            if catalog_definition == 1:
-                self.catalog_info['longitude_coordinate'] = 'RA'
-                self.catalog_info['latitude_coordinate'] = 'Dec'
-                self.catalog_info['epoch'] = 'J2000'
-                break
-            elif catalog_definition == 2:
-                self.catalog_info['longitude_coordinate'] = 'RA'
-                self.catalog_info['latitude_coordinate'] = 'Dec'
-                self.catalog_info['epoch'] = 'B1950'
-                break
-            elif catalog_definition == 3:
-                self.catalog_info['longitude_coordinate'] = 'GLONG'
-                self.catalog_info['latitude_coordinate'] = 'GLAT'
-                break
-            else:
-                print "You did not select a valid option."
-
-    def get_user_catalog_velocity_definitions(self):
-
-        """
-        Purpose: ask user for definitions for velocity frame
-
-        Output: values for definitions of velocity definitions
-
-        Date        Programmer      Description of Changes
-        ----------------------------------------------------------------------
-        9/25/2013   A.A. Kepley     Original Code
-        """
-
-        # If the catalog contains velocities, get the velocity frame.
-        if (re.match(self.catalog_info['type'], 'LatLongVel') or
-            re.match(self.catalog_info['type'], 'LatLongVelInt') or
-            re.match(self.catalog_info['type'], 'LatLongVelMap')):
-
-            while True:
-                prompt = """
-                Select the velocity frame for your catalog:
-                1.) LSR optical
-                2.) LSR radio
-                3.) Barycentric (~heliocentric) optical 
-                4.) Barycentric (~heliocentric) radio
-                5.) Topocentric radio
-                """
-
-                catalog_definition = int(raw_input(prompt))
-                
-                if catalog_definition == 1:
-                    self.catalog_info['velocity_definition'] = 'LSR'
-                    self.catalog_info['velocity_convention'] ='VOPT'
-                    break
-                elif catalog_definition == 2:
-                    self.catalog_info['velocity_definition'] = 'LSR'
-                    self.catalog_info['velocity_convention'] ='VRAD'
-                    break
-                elif catalog_definition == 3:
-                    self.catalog_info['velocity_definition'] = 'BAR'
-                    self.catalog_info['velocity_convention'] ='VOPT'
-                    break
-                elif catalog_definition == 4:
-                    self.catalog_info['velocity_definition'] = 'BAR'
-                    self.catalog_info['velocity_convention'] ='VRAD'
-                    break
-                elif catalog_definition == 5:
-                    self.catalog_info['velocity_definition'] = 'TOP'
-                    self.catalog_info['velocity_convention'] ='VRAD'
-                    break
-                else:
-                    print "You did not select a valid option."
-
-        else:
-            return
             
     def read_catalog(self):
 
         """
-        Purpose: read in user catalog.
+        Purpose: read in user catalog. I'm using the astrid catalog reader to read the catalog
 
-        The catalog should have at least three columns with name,
-        longitude-like coordinate (e.g., RA), latitude-like
-        coordinate (Dec). The names should not include any
-        spaces. I'm assuming that the longitude- and latitude-like
-        coordinate are input as hh:mm:ss.s or dd:mm:ss.s.
-
-        If there is a fourth column, it is assumed to be the
-        source velocity in km/s. If a fourth column is not
-        included, the velocities for all sources is assumed to be
-        zero and the topocentric-radio velocity definition is
-        selected.
-
-        If there are five columns, the fifth column is assume to
-        be an integration time per source.
-
-        If there are six columns, the fifth and sixth columns are
-        the Longitude and Latitude sizes for a map. The user can
-        specify the coordinate system for the Longitude and
-        Latitude (e.g., RA/Dec, GLAT, GLONG) and it does not need
-        to be the same as the coordinate system for each
-        source. In other words, you can specify your map centers
-        in RA/Dec and map in GLAT/GLONG.
+        Input: GBT catalog file
 
         Output: set coordinates in catalog dictionary.
 
         Date        Programmer      Description of Changes
         ----------------------------------------------------------------------
         9/25/2013   A.A. Kepley     Original Code
+        11/8/2013   A.A. Kepley     Modified to use astrid catalog reading function
         """
 
-        if self.catalog_info['type'] == 'LatLong':
-            try:
-                catalog_data = np.genfromtxt(self.project_info['catalog_location'],
-                                             dtype='S25,S25,S25',
-                                             names=['srcname','lat','long'])
-            except:
-                print "catalog not in right format"
+        self.catalog_info = Catalog(self.project_info['catalog_location'])        
 
-            self.catalog_info['catalog']['srcname'] = catalog_data['srcname']
-            self.catalog_info['catalog']['lat'] = catalog_data['lat']
-            self.catalog_info['catalog']['long'] = catalog_data['long']
-            self.get_integration_time()
+        
+    def setup_observations(self):
+        
+        """
+        Purpose: set up integration time, offsets, and/or maps sizes if the user hasn't already
+        
 
-        elif self.catalog_info['type'] == 'LatLongVel':
-            try:
-                catalog_data = np.genfromtxt(self.project_info['catalog_location'],
-                                             dtype='S25,S25,S25,f',
-                                             names=['srcname','lat','long','vel'])
-            except:
-                print "catalog not in right format"
+        Date       Programmer      Description of Changes
+        ----------------------------------------------------------------------
+        11/8/2013  A.A. Kepely     Original Code
+        """
+        
+        self.map_or_point()
 
-            self.catalog_info['catalog']['srcname'] = catalog_data['srcname']
-            self.catalog_info['catalog']['lat'] = catalog_data['lat']
-            self.catalog_info['catalog']['long'] = catalog_data['long']
-            self.catalog_info['catalog']['vel'] = catalog_data['vel']
-            self.get_integration_time()
-            
-        elif self.catalog_info['type'] == 'LatLongInt':
-            try:
-                catalog_data = np.genfromtxt(self.project_info['catalog_location'],
-                                             dtype='S25,S25,S25,f',
-                                             names=['srcname','lat','long','int'])
-            except:
-                print "catalog not in right format"
-                
-            self.catalog_info['catalog']['srcname'] = catalog_data['srcname']
-            self.catalog_info['catalog']['lat'] = catalog_data['lat']
-            self.catalog_info['catalog']['long'] = catalog_data['long']
-            self.catalog_info['catalog']['int'] = catalog_data['int']
-
-        elif self.catalog_info['type'] == 'LatLongVelInt':
-            try:
-                catalog_data = np.genfromtxt(self.project_info['catalog_location'],
-                                             dtype='S25,S25,S25,f,f',
-                                             names=['srcname','lat','long','vel','int'])
-            except:
-                print "catalog not in right format"
-                
-            self.catalog_info['catalog']['srcname'] = catalog_data['srcname']
-            self.catalog_info['catalog']['lat'] = catalog_data['lat']
-            self.catalog_info['catalog']['long'] = catalog_data['long']
-            self.catalog_info['catalog']['vel'] = catalog_data['vel']
-            self.catalog_info['catalog']['int'] = catalog_data['int']
-
-        elif self.catalog_info['type'] == 'LatLongMap':
-            try:
-                catalog_data = np.genfromtxt(self.project_info['catalog_location'],
-                                             dtype='S25,S25,S25,f,f',
-                                             names=['srcname','lat','long','lat_size','long_size'])
-            except:
-                print "catalog not in right format"
-
-            self.catalog_info['catalog']['srcname'] = catalog_data['srcname']
-            self.catalog_info['catalog']['lat'] = catalog_data['lat']
-            self.catalog_info['catalog']['long'] = catalog_data['long']
-            self.catalog_info['catalog']['lat_size'] = catalog_data['lat_size']
-            self.catalog_info['catalog']['long_size'] = catalog_data['long_size']
-            self.project_info['map'] = True
-
-        elif self.catalog_info['type'] == 'LatLongVelMap':
-            try:
-                catalog_data = np.genfromtxt(self.project_info['catalog_location'],
-                                             dtype='S25,S25,S25,f,f,f',
-                                             names=['srcname','lat','long','vel','lat_size','long_size'])
-            except:
-                print "catalog not in right format"
-                
-            self.catalog_info['catalog']['srcname'] = catalog_data['srcname']
-            self.catalog_info['catalog']['lat'] = catalog_data['lat']
-            self.catalog_info['catalog']['long'] = catalog_data['long']
-            self.catalog_info['catalog']['vel'] = catalog_data['vel']
-            self.catalog_info['catalog']['lat_size'] = catalog_data['lat_size']
-            self.catalog_info['catalog']['long_size'] = catalog_data['long_size']
-            self.project_info['map'] = True
-
+        if self.project_info['map'] is False :
+            self.check_integration_time()
+            if self.project_info['observing_method'] is 'psw':
+                self.check_psw_offset()
         else:
-            print "not a valid catalog type"
+            self.check_map_size()
 
 
-    def get_integration_time(self):
+    def map_or_point(self):
+        
+        """ 
+        Purpose: ask user if they want to map.
+        
+        Date            Programmer              Description of Changes
+        ----------------------------------------------------------------------
+        11/12/2013      A.A. Kepley             Original Code
+        """
+        # get the project ID from the user and check to make sure it is a valid format.
+        while True:
+            map_or_point = raw_input("Do you want to map your source [Y/N]?")
+           
+            if map_or_point in ['Y','y','yes']:
+                self.project_info['map'] = True
+                break
+            elif map_or_point in ['N','n','no']:
+                self.project_info['map'] = False
+                break
+            else:
+                print "Enter Y or N."
+
+        
+    def check_integration_time(self):
 
         """
-        Purpose: have user set integration time that they want to use
+        Purpose: check integration time and if it isn't set have user set it.
 
         Date            Programmer              Description of Changes
         ----------------------------------------------------------------------
         10/24/2013      A.A. Kepley             Original Code
         """
 
+        defaultint = None
+
+        for src in self.catalog_info.keys(): 
+            if 'INT' not in self.catalog_info[src].keys():
+                if not defaultint:
+                    defaultint = self.get_integration_time()
+                self.catalog_info[src]['INT'] = defaultint
+                    
+
+    def get_integration_time(self):
+        
+        """
+        Purpose: get integration time
+        
+        Date            Programmer              Description of Changes
+        ----------------------------------------------------------------------
+        11/8/2013       A.A. Kepley             Original Code
+        """
+
         while True:
             prompt = """
-            Enter the integration time per source in seconds:
-            """
+                    Enter the integration time per source in seconds:
+                    """
 
             int_time = raw_input(prompt)
 
             if float(int_time):
+                return float(int_time)
             
-                int_array = np.empty(len(self.catalog_info['catalog']['srcname']))
-                int_array.fill(float(int_time))
-                self.catalog_info['catalog']['int'] = int_array.copy()
-                break
+            # Probably want some more logic here to make sure that the
+            # integration time is okay.
+        
+    def check_psw_offset(self):
+
+        """
+        Purpose: get to see if the user hasn't set up the offset yet and let them set if if they need it.
+
+        Date            Programmer              Description of Changes
+        ----------------------------------------------------------------------
+        11/12/2013      A.A. Kepley             Original Code
+
+        """
+    
+        defaultoffset = None
+
+        for src in self.catalog_info.keys(): 
+            if 'LONG_OFFSET' or 'LAT_OFFSET' not in self.catalog_info[src].keys():
+                if not defaultoffset:
+                    defaultoffset = self.get_psw_offset()
+                self.catalog_info[src]['LONG_OFFSET'] = defaultoffset
+                self.catalog_info[src]['LAT_OFFSET'] = defaultoffset
+            
 
     def get_psw_offset(self):
 
@@ -474,8 +257,78 @@ class Project:
         ----------------------------------------------------------------------
         10/24/2013      A.A. Kepley             Original Code
         """
+        
+        # estimate of beam size in arcmin, not taking into account
+        # redshift of source. If there is a substantial redshift, then
+        # this will shift the assumed beam size.
+        beam_size = 1.2 * 206265.0 * 3e8 /( self.backend_info['restfreq'] * 1e6 * 100.0) / 60.0
 
-        pass
+        while True:
+            prompt = "Enter the offset you would like for the OFF position in arcmin. The suggested offset for your rest frequency is " + str(beam_size) + ". This size does reflect the redshift of the source, so it will be in error for high-redshift sources.\n"
+
+            psw_offset = raw_input(prompt)
+
+            if float(psw_offset):
+                return float(psw_offset)
+            
+            # Probably want some more logic here to make sure that the
+            # offset is okay.
+        
+
+    def check_map_size(self):
+        
+        """
+        Purpose: check map size for source
+
+        Date            Programmer              Description of Changes
+        ----------------------------------------------------------------------
+        11/12/2013      A.A. Kepley             Original Code
+
+        """
+        defaultlatsize = None
+        defaultlongsize = None
+
+        for src in self.catalog_info.keys(): 
+            if 'LONG_SIZE'  not in self.catalog_info[src].keys():
+                if not defaultlongsize:
+                    defaultlongsize = self.get_map_size('LONG')
+                self.catalog_info[src]['LONG_SIZE'] = defaultlongsize
+            if 'LAT_SIZE'  not in self.catalog_info[src].keys():
+                if not defaultlatsize:
+                    defaultlatsize = self.get_map_size('LAT')
+                self.catalog_info[src]['LAT_SIZE'] = defaultlatsize
+
+
+    def get_map_size(self, lat_or_long):
+
+        """
+        Purpose: have user set the offset that they want to use for position switching
+        
+        Date            Programmer              Description of Changes
+        ----------------------------------------------------------------------
+        10/24/2013      A.A. Kepley             Original Code
+        """
+        
+        # estimate of beam size in arcmin, not taking into account
+        # redshift of source. If there is a substantial redshift, then
+        # this will shift the assumed beam size.
+        beam_size = 1.2 * 206265.0 * 3e8 /( self.backend_info['restfreq'] * 1e6 * 100.0) / 60.0
+
+        if lat_or_long is 'lat':
+            direction = 'latitude'
+        else:
+            direction = 'longitude'
+
+        while True:
+            prompt = "Enter the size of the map in the " + direction + " direction in arcmin.\n"
+
+            map_size = raw_input(prompt)
+
+            if float(map_size):
+                return float(map_size)
+
+        # probably should do some checks to make sure that the size of
+        # the map is reasonable (not too big or too small).
 
     def get_backend_preset(self):
 
@@ -507,7 +360,7 @@ class Project:
 
 
                 
-    def set_up_backend(self):
+    def setup_backend(self):
 
         """
         Purpose: set defaults for backend configuration. 
@@ -522,7 +375,6 @@ class Project:
         if self.project_info['backend_preset'] == 'ExGalHI':
 
             self.project_info['observing_method'] = 'psw' # position switching
-
             self.backend_info['receiver'] = 'Rcvr1_2'
             self.backend_info['obstype'] = 'Spectroscopy'
             self.backend_info['backend'] = 'Spectrometer'
@@ -539,61 +391,6 @@ class Project:
             print "not a valid backend preset"
   
 
-    def set_up_map(self):
-
-        """
-        Purpose: set up a single map with the given parameters
-
-        Output: mapping script
-
-        Date        Programmer      Description of Changes
-        ----------------------------------------------------------------------
-        9/25/2013   A.A. Kepley     Original Code
-        """
-
-        pass
-
-    def print_catalog(self):
-
-        """
-        Purpose: print out catalog
-
-        Date            Programmer      Description of Change
-        ----------------------------------------------------------------------
-        10/4/2013       A.A. Kepley     Original Code
-
-        """
-
-        filename = self.project_info['project_id'] + '.cat'
-
-        try:
-            f = open(filename, 'w')
-        except:
-            print "Could not open filename"
-
-
-        f.write("format=spherical\n")
-        f.write("coordmode="+self.catalog_info['epoch'] + "\n")
-        f.write("veldef=" +
-                self.catalog_info['velocity_convention'] + '-' +
-                self.catalog_info['velocity_definition'] + "\n")
-
-        if self.catalog_info['type'] == 'LatLongVel':
-            f.write("HEAD = " +
-                    "NAME" + "    " +
-                    self.catalog_info['longitude_coordinate'] + "    " +
-                    self.catalog_info['latitude_coordinate'] + "    " +
-                    "VEL" + "\n")
-            # write out values from catalogx
-            for i in range(len(self.catalog_info['catalog']['lat'])):
-                f.write(self.catalog_info['catalog']['srcname'][i] + "    " +
-                        self.catalog_info['catalog']['lat'][i] + "    " +
-                        self.catalog_info['catalog']['long'][i] + "     " +
-                        str(self.catalog_info['catalog']['vel'][i]) + "\n")
-
-        f.close()
-
-            
     def print_backend_config(self):
 
         """
@@ -631,6 +428,31 @@ class Project:
 
         f.close()
 
+    def write_script_header(self,f):
+
+        """"
+        Purpose: write catalog header to file
+
+        Date            Programmer              Description of Changes
+        ----------------------------------------------------------------------
+        11/12/2013      A.A. Kepley             Original
+        """
+
+        configfile = self.project_info['project_id'] + '.config'
+        catfile = self.project_info['project_id'] + '.cat'
+        mypath = os.getcwd() # assumes I'm running on the GBT systems.
+
+        f.write("#Configuration file\n")
+        f.write("execfile('"+mypath+"/"+configfile+"')\n")
+        f.write("\n")
+                
+        f.write("# Catalog files including official flux calibrators and pointing calibrators for the GBT\n")
+        f.write("Catalog('"+mypath+"/"+catfile+"')\n")
+        f.write("Catalog(fluxcal)\n")
+        f.write("Catalog(pointing)\n")
+        f.write("\n")
+
+
     def print_focus_script(self):
 
         """
@@ -642,26 +464,15 @@ class Project:
 
         """
 
-        configfile = self.project_info['project_id'] + '.config'
-        catfile = self.project_info['project_id'] + '.cat'
-        mypath = os.getcwd() # assumes I'm running on the GBT systems.
-
+        
         filename = self.project_info['project_id'] + '_focus.obs'
 
         try:
             f = open(filename, 'w')
         except:
             print "Could not open filename"
-
-        f.write("#Configuration file\n")
-        f.write("execfile('"+mypath+"/"+configfile+"')\n")
-        f.write("\n")
-
-        f.write("# Catalog files including official flux calibrators and pointing calibrators for the GBT\n")
-        f.write("Catalog('"+mypath+"/"+catfile+"')\n")
-        f.write("Catalog(fluxcal)\n")
-        f.write("Catalog(pointing)\n")
-        f.write("\n")
+            
+        write_script_header(f)
 
         f.write("# Slewing to source. Change src variable to point and focus near another source \n")
         f.write("src = '" + self.catalog_info['catalog']['srcname'][0] + "'\n")
@@ -708,9 +519,55 @@ class Project:
         Date            Programmer      Description of Changes
         ----------------------------------------------------------------------
         10/24/2013      A.A. Kepley     Original Code
+        11/12/2013      A.A. Kepley     Updated to actually include code 
         """
         
-        pass
+        # get info on configuration and catalog
+        configfile = self.project_info['project_id'] + '.config'
+        catfile = self.project_info['catalog_location']
+        mypath = os.getcwd() # assumes I'm running on the GBT systems.
+        
+        beam_size = 1.2 * 206265.0 * 3e8 /( self.backend_info['restfreq'] * 1e6 * 100.0) / 60.0 # arcmin
+
+        # for each source in catalog create observing script need to
+        # ask for the integration time if you don't already have
+        # it. probably write an extra function to do this.
+        for src in self.catalog_info.keys():
+
+            vdelta = beam_size/2.4
+            longscanduration = self.catalog_info[src]['LONG_SIZE']
+            latscanduration = self.catalog_info[src]['LAT_SIZE']
+            
+            longoffsetobject = "Offset(" + self.catalog_info[src]['coordmode'] + "," + self.catalog_info[src]['LONG_SIZE'] + ",0.0)"
+            latoffsetobject = "Offset(" + self.catalog_info[src]['coordmode'] + ",0.0," + self.catalog_info[src]['LAT_SIZE'] + ")"
+            
+            for maptype in ['RALongMap','DecLat']:
+
+                filename = self.project_info['project_id'] + '_' + src + 'RALongMap.obs'
+                try:
+                    f = open(filename, 'w')
+                except:
+                    print "Could not open filename"
+                    
+                    write_script_header(f)
+
+                    f.write("# Slewing to source.  \n")
+                    f.write("src = '" + src + "'\n")
+                    f.write("Slew(src)\n")
+                    f.write("\n")
+
+                # ADD CONFIG AND BALANCE STATEMENT HERE???
+                                    
+                if maptype is 'RALongMap':
+                    scanduration = ceil(self.catalog_info[src]['LONG_SIZE'] / (beamsize/5.0) ) * self.backend_info['tint']
+                    obs_command = "RALongMap(src," + longoffstobject + "," + latoffsetobject + "," + str(scanduration) + ",beamName='B1')")
+                else:
+                    scanduration = ceil(self.catalog_info[src]['LAT_SIZE'] / (beamsize/5.0) ) * self.backend_info['tint']
+                    obs_command = "DecLatMap(src," + longoffstobject + "," + latoffsetobject + "," + str(scanduration) + ",beamName='B1')")
+
+            f.write(obs_command)
+
+            f.close()
 
     def print_single_pointing_script(self):
         
@@ -725,7 +582,7 @@ class Project:
 
         # get info on configuration and catalog
         configfile = self.project_info['project_id'] + '.config'
-        catfile = self.project_info['project_id'] + '.cat'
+        catfile = self.project_info['catalog_location']
         mypath = os.getcwd() # assumes I'm running on the GBT systems.
 
         # for each source in catalog create observing script need to
@@ -738,17 +595,8 @@ class Project:
                 f = open(filename, 'w')
             except:
                 print "Could not open filename"
-
             
-            f.write("#Configuration file\n")
-            f.write("execfile('"+mypath+"/"+configfile+"')\n")
-            f.write("\n")
-            
-            f.write("# Catalog files including official flux calibrators and pointing calibrators for the GBT\n")
-            f.write("Catalog('"+mypath+"/"+catfile+"')\n")
-            f.write("Catalog(fluxcal)\n")
-            f.write("Catalog(pointing)\n")
-            f.write("\n")
+            write_script_header(f)
 
             f.write("# Slewing to source.  \n")
             f.write("src = '" + self.catalog_info['catalog']['srcname'][i] + "'\n")
@@ -759,12 +607,15 @@ class Project:
             
             # select the observing command based on the observing mode.
             if self.project_info['observing_method'] == 'psw':
-                obs_command = 'OnOff(src,Offset("J2000","00:15:00","00:33:00"),'+str(self.catalog_info['catalog']['int'][i]) + ')\n'
+                offsetobject = "Offset(" +  self.catalog_info[src]['coordmode'] + "," + \
+                    str(self.catalog_info[src]['LONG_OFFSET']/60.0) + "," + \
+                    str(self.catalog_info[src]['LAT_OFFSET']/60.0)+')'
+                obs_command = 'OnOff(src,' + offsetobject + str(self.catalog_info[src]['INT']) + ')\n'
             elif self.project_info['observing_method'] == 'fsw':
-                obs_command = 'Track(src,None,'+ str(self.catalog_info['catalog']['int'][i]) + ')\n'
+                obs_command = 'Track(src,None,'+ str(self.catalog_info[src]['INT']) + ')\n'
             elif self.project_info['observing_method'] == 'nod':
                 obs_command = 'Nod'
-                obs_command = 'Nod(src,1,2,'+ str(self.catalog_info['catalog']['int'][i]) + ')\n'
+                obs_command = 'Nod(src,1,2,'+ str(self.catalog_info[src]['INT']) + ')\n'
             else:
                 print "Observing mode not recognized"
 
@@ -810,30 +661,23 @@ def get_user_parameters():
     # Create a new project
     myproject = Project()
 
+    # display welcome message with instructions on how to run program
     myproject.display_welcome_message()
+
     # set up the project meta-data
     myproject.get_project_id()    
-    #    myproject.get_script_name()
 
     # get the catalog
     myproject.get_user_catalog()
-    myproject.get_user_catalog_type()
-    myproject.get_user_catalog_position_definitions()
-
-    # get velocity definitions
-    myproject.get_user_catalog_velocity_definitions()
 
     # read the catalog
     myproject.read_catalog() 
 
     # set up the backend
     myproject.get_backend_preset()
-    myproject.set_up_backend()
+    myproject.setup_backend()
 
-    # set up map if doing map
-
-    # print catalog
-    myproject.print_catalog()
+    myproject.setup_observations()
 
     # print backend config
     myproject.print_backend_config()

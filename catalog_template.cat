@@ -63,3 +63,7 @@ HEAD = NAME RA DEC VELOCITY # example
 #			Catalog Entries
 #----------------------------------------------------------------------
 M82	09:55:52.7	69:40:46	203   # example catalog entry. replace with your catalog.
+N1569	04:30:49.0 	64:50:53       -104   # example catalog entry. replace with your catalog.
+N4214	12:15:39.2 	36:19:37        291   # example catalog entry. replace with your catalog.
+IC342	03:46:48.5 	68:05:47         31   # example catalog entry. replace with your catalog.
+test1	09:55:52.7	69:40:46
