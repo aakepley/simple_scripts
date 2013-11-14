@@ -1,3 +1,7 @@
+# On 64-bit system:
+
+# source /home/gbt/sparrow/sparrow.bash
+
 import numpy as np
 import re
 import os
@@ -14,10 +18,10 @@ class Project:
                              'catalog_location': "",  # /path/to/filename
                              'backend_preset': "",    # short name for preset or other if not using a preset
                              'observing_method': "",  # nod (nodding), psw (position switching), fsw (frequency switching).
-                             'map': False}            # True if map, False otherwise. Can't have map=True and observing_method='nod
-        
+                             'map': False}            # True if map, False otherwise. Can't have map=True and observing_method='nod'
+
+        # use the astrid catalog class for this
         self.catalog_info = Catalog()
-        
 
         # Backend info
         # These are taken from the configuration keywords for astrid. I probably don't need them all.
@@ -59,8 +63,12 @@ class Project:
         Welcome to the automatic GBT script generator!
 
         To use this program, you will need to have
-                1.) your project ID code, which can be found on the cover-sheet of your proposal, 
-                2.) a text file with your catalog, and
+
+                1.) A catalog file. An example catalog file can be
+                found in /home/astro-util/projects/simple on the GBT systems.
+
+                2.) your project ID code, which can be found on the cover-sheet of your proposal, 
+
                 3.) what observing mode you would like to use.
 
         Only the most common simple GBT observing modes are available
@@ -264,7 +272,7 @@ class Project:
         beam_size = 1.2 * 206265.0 * 3e8 /( self.backend_info['restfreq'] * 1e6 * 100.0) / 60.0
 
         while True:
-            prompt = "Enter the offset you would like for the OFF position in arcmin. The suggested offset for your rest frequency is " + str(beam_size) + ". This size does reflect the redshift of the source, so it will be in error for high-redshift sources.\n"
+            prompt = "Enter the offset you would like for the OFF position in arcmin. The suggested offset for your observing frequency is " + str(3.0*beam_size) + "\n"
 
             psw_offset = raw_input(prompt)
 
@@ -291,11 +299,11 @@ class Project:
         for src in self.catalog_info.keys(): 
             if 'LONG_SIZE'  not in self.catalog_info[src].keys():
                 if not defaultlongsize:
-                    defaultlongsize = self.get_map_size('LONG')
+                    defaultlongsize = self.get_map_size('long')
                 self.catalog_info[src]['LONG_SIZE'] = defaultlongsize
             if 'LAT_SIZE'  not in self.catalog_info[src].keys():
                 if not defaultlatsize:
-                    defaultlatsize = self.get_map_size('LAT')
+                    defaultlatsize = self.get_map_size('lat')
                 self.catalog_info[src]['LAT_SIZE'] = defaultlatsize
 
 
@@ -430,7 +438,7 @@ class Project:
 
     def write_script_header(self,f):
 
-        """"
+        """
         Purpose: write catalog header to file
 
         Date            Programmer              Description of Changes
@@ -439,7 +447,7 @@ class Project:
         """
 
         configfile = self.project_info['project_id'] + '.config'
-        catfile = self.project_info['project_id'] + '.cat'
+        catfile = self.project_info['catalog_location']
         mypath = os.getcwd() # assumes I'm running on the GBT systems.
 
         f.write("#Configuration file\n")
@@ -447,7 +455,7 @@ class Project:
         f.write("\n")
                 
         f.write("# Catalog files including official flux calibrators and pointing calibrators for the GBT\n")
-        f.write("Catalog('"+mypath+"/"+catfile+"')\n")
+        f.write("Catalog('" + mypath+ "/" + catfile + "')\n")
         f.write("Catalog(fluxcal)\n")
         f.write("Catalog(pointing)\n")
         f.write("\n")
@@ -472,10 +480,12 @@ class Project:
         except:
             print "Could not open filename"
             
-        write_script_header(f)
+        self.write_script_header(f)
+
+        srcs = self.catalog_info.keys()
 
         f.write("# Slewing to source. Change src variable to point and focus near another source \n")
-        f.write("src = '" + self.catalog_info['catalog']['srcname'][0] + "'\n")
+        f.write("src = '" + srcs[0] + "'\n")
         f.write("Slew(src)\n")
         f.write("\n")
         
@@ -522,11 +532,6 @@ class Project:
         11/12/2013      A.A. Kepley     Updated to actually include code 
         """
         
-        # get info on configuration and catalog
-        configfile = self.project_info['project_id'] + '.config'
-        catfile = self.project_info['catalog_location']
-        mypath = os.getcwd() # assumes I'm running on the GBT systems.
-        
         beam_size = 1.2 * 206265.0 * 3e8 /( self.backend_info['restfreq'] * 1e6 * 100.0) / 60.0 # arcmin
 
         # for each source in catalog create observing script need to
@@ -534,40 +539,42 @@ class Project:
         # it. probably write an extra function to do this.
         for src in self.catalog_info.keys():
 
-            vdelta = beam_size/2.4
-            longscanduration = self.catalog_info[src]['LONG_SIZE']
-            latscanduration = self.catalog_info[src]['LAT_SIZE']
-            
-            longoffsetobject = "Offset(" + self.catalog_info[src]['coordmode'] + "," + self.catalog_info[src]['LONG_SIZE'] + ",0.0)"
-            latoffsetobject = "Offset(" + self.catalog_info[src]['coordmode'] + ",0.0," + self.catalog_info[src]['LAT_SIZE'] + ")"
-            
-            for maptype in ['RALongMap','DecLat']:
+            delta = beam_size/2.4
 
-                filename = self.project_info['project_id'] + '_' + src + 'RALongMap.obs'
+            longoffsetobject = "Offset('" + self.catalog_info[src]['coordmode'] + "'," + str(self.catalog_info[src]['LONG_SIZE']/60.0) + ",0.0)"
+            latoffsetobject = "Offset('" + self.catalog_info[src]['coordmode'] + "',0.0," + str(self.catalog_info[src]['LAT_SIZE']/60.0) + ")"
+            
+            for maptype in ['RALongMap','DecLatMap']:
+
+                filename = self.project_info['project_id'] + '_' + src + '_' + maptype + '.obs'
                 try:
                     f = open(filename, 'w')
                 except:
                     print "Could not open filename"
                     
-                    write_script_header(f)
+                self.write_script_header(f)
 
-                    f.write("# Slewing to source.  \n")
-                    f.write("src = '" + src + "'\n")
-                    f.write("Slew(src)\n")
-                    f.write("\n")
+                f.write("# Slewing to source.  \n")
+                f.write("src = '" + src + "'\n")
+                f.write("Slew(src)\n")
+                f.write("\n")
 
                 # ADD CONFIG AND BALANCE STATEMENT HERE???
                                     
                 if maptype is 'RALongMap':
-                    scanduration = ceil(self.catalog_info[src]['LONG_SIZE'] / (beamsize/5.0) ) * self.backend_info['tint']
-                    obs_command = "RALongMap(src," + longoffstobject + "," + latoffsetobject + "," + str(scanduration) + ",beamName='B1')")
+                    scanduration = ceil(self.catalog_info[src]['LONG_SIZE'] / (beam_size/5.0) ) * self.backend_info['tint']
+                    deltaoffsetobject = "Offset('" +  self.catalog_info[src]['coordmode'] + "', 0.0, " + str(delta/60.0) + ")"
+                    obs_command = "RALongMap(src," + longoffsetobject + "," + latoffsetobject + "," + deltaoffsetobject + "," + str(scanduration) + ",beamName='B1')"
+                    f.write(obs_command)
+                    f.close()
                 else:
-                    scanduration = ceil(self.catalog_info[src]['LAT_SIZE'] / (beamsize/5.0) ) * self.backend_info['tint']
-                    obs_command = "DecLatMap(src," + longoffstobject + "," + latoffsetobject + "," + str(scanduration) + ",beamName='B1')")
+                    scanduration = ceil(self.catalog_info[src]['LAT_SIZE'] / (beam_size/5.0) ) * self.backend_info['tint']
+                    deltaoffsetobject = "Offset('" +  self.catalog_info[src]['coordmode'] + "'," +  str(delta/60.0) + ", 0.0)"
+                    obs_command = "DecLatMap(src," + longoffsetobject + "," + latoffsetobject + "," + deltaoffsetobject + "," + str(scanduration) + ",beamName='B1')"
+                    f.write(obs_command)
+                    f.close()
+                    
 
-            f.write(obs_command)
-
-            f.close()
 
     def print_single_pointing_script(self):
         
@@ -580,26 +587,21 @@ class Project:
 
         """
 
-        # get info on configuration and catalog
-        configfile = self.project_info['project_id'] + '.config'
-        catfile = self.project_info['catalog_location']
-        mypath = os.getcwd() # assumes I'm running on the GBT systems.
-
         # for each source in catalog create observing script need to
         # ask for the integration time if you don't already have
         # it. probably write an extra function to do this.
-        for i in range(len(self.catalog_info['catalog']['srcname'])):
+        for src in self.catalog_info.keys():
 
-            filename = self.project_info['project_id'] + '_' + self.catalog_info['catalog']['srcname'][i] + '.obs'
+            filename = self.project_info['project_id'] + '_' + src + '.obs'
             try:
                 f = open(filename, 'w')
             except:
                 print "Could not open filename"
             
-            write_script_header(f)
+            self.write_script_header(f)
 
             f.write("# Slewing to source.  \n")
-            f.write("src = '" + self.catalog_info['catalog']['srcname'][i] + "'\n")
+            f.write("src = '" + src + "'\n")
             f.write("Slew(src)\n")
             f.write("\n")
 
@@ -607,10 +609,10 @@ class Project:
             
             # select the observing command based on the observing mode.
             if self.project_info['observing_method'] == 'psw':
-                offsetobject = "Offset(" +  self.catalog_info[src]['coordmode'] + "," + \
+                offsetobject = "Offset('" +  self.catalog_info[src]['coordmode'] + "'," + \
                     str(self.catalog_info[src]['LONG_OFFSET']/60.0) + "," + \
                     str(self.catalog_info[src]['LAT_OFFSET']/60.0)+')'
-                obs_command = 'OnOff(src,' + offsetobject + str(self.catalog_info[src]['INT']) + ')\n'
+                obs_command = 'OnOff(src,' + offsetobject + ","+str(self.catalog_info[src]['INT']) + ')\n'
             elif self.project_info['observing_method'] == 'fsw':
                 obs_command = 'Track(src,None,'+ str(self.catalog_info[src]['INT']) + ')\n'
             elif self.project_info['observing_method'] == 'nod':
