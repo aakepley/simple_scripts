@@ -1,7 +1,6 @@
-simple_scripts
-==============
+# simple_scripts
 
-# Program Description
+## Program Description
 
 The simple_script program produces observing scripts for the GBT for
 common types of simple observations.  Upon class initialization, it
@@ -21,7 +20,7 @@ extended to take this into account. Astrid, however, does not provide
 the sky frequency automatically; it would have to be calculated via
 the usual definitions.
 
-# Usage
+## Usage
 
 This script will only works on GBT computers. You need to import the
 GBT turtle libraries prior to running using the command "source
@@ -44,7 +43,7 @@ loaded into Astrid for observing. The configuration and catalog files
 are assumed to reside in the same directory that get_user_parameters()
 was called from. The output scripts are labeled with the project id and the source name (for target observations) or focus (for focus observations).
 
-# Future improvements
+## Future improvements
 
 * update to use VEGAS instead of the Spectrometer
 
