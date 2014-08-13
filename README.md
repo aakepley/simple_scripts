@@ -2,7 +2,7 @@
 
 ## Program Description
 
-The simple_script program produces observing scripts for the GBT for
+The simple_scripts program produces observing scripts for the GBT for
 common types of simple observations.  Upon class initialization, it
 creates an empty structure with the necessary observing
 parameters. This structure is then filled in using a series of helper
